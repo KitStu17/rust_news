@@ -3,6 +3,21 @@ name = "rust_news"
 version = "0.1.0"
 edition = "2021"
 
+# 프로젝트의 라이브러리 파일 선언
+[lib]
+path = "src/lib.rs"
+
+# [[]] -> TOML에서 배열
+# 프로젝트에서 다수의 바이너리를 포함 가능
+[[bin]]
+path = "src/main.rs"
+name = "rust_news"
+
 [dependencies]
 actix-web = "4"
 tokio={version = "1", features = ["macros", "rt-multi-thread"]}
+
+# 테스트 또는 예시를 실행할 때만 사용되는 의존성
+# 최종 빌드 시에 해당 의존성은 포함되지 않는다.
+[dev-dependencies]
+reqwest="0.11"
