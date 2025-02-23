@@ -11,6 +11,17 @@ async fn health_check(_req: HttpRequest) -> HttpResponse {
     HttpResponse::Ok().finish()
 }
 
+#[derive(serde::Deserialize)]
+struct FormData {
+    email: String,
+    name: String
+}
+
+// 무조건 200 OK 를 반환하는 api
+async fn subscribe(_form: web::Form<FormData>) -> HttpResponse {
+    HttpResponse::Ok().finish()
+}
+
 pub fn run(listener: TcpListener) -> Result<Server, std::io::Error> {
     let server = HttpServer::new(|| {
         App::new()
@@ -19,6 +30,8 @@ pub fn run(listener: TcpListener) -> Result<Server, std::io::Error> {
             .route("/", web::get().to(greet))
             //.route("/{name}", web::get().to(greet))
             .route("/health_check", web::get().to(health_check))
+            // 새로만든 subscribe api 처리, post 요청으로 받는다.
+            .route("/subscriptions", web::post().to(subscribe))
         })
         .listen(listener)?
         .run();
