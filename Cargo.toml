@@ -16,7 +16,21 @@ name = "rust_news"
 [dependencies]
 actix-web = "4"
 tokio={version = "1", features = ["macros", "rt-multi-thread"]}
+# 역직렬화을 위한 의존성성
 serde={version = "1", features = ["derive"]}
+# config.yaml 파일을 통한 구성 파일 관리를 위한 의존성
+config = "0.13"
+sqlx = { version = "0.8", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "macros",
+    "postgres",
+    "uuid",
+    "chrono",
+    "migrate",
+] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4.22", default-features = false, features = ["clock"] }
+
 
 # 테스트 또는 예시를 실행할 때만 사용되는 의존성
 # 최종 빌드 시에 해당 의존성은 포함되지 않는다.

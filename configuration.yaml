@@ -1,0 +1,7 @@
+application_port: 8080
+database:
+  host: "127.0.0.1"
+  port: 5433
+  username: "admin"
+  password: "cyan6077"
+  database_name: "rust_news"

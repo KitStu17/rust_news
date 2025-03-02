@@ -2,21 +2,51 @@
 set -x
 set -eo pipefail
 
-# 커스텀 유저 설정
+
+if ! [ -x "$(command -v psql)" ]; then
+    echo >&2 "Error: psql is not installed."
+    exit 1
+fi
+if ! [ -x "$(command -v sqlx)" ]; then
+    echo >&2 "Error: sqlx is not installed."
+    echo >&2 "Use:"
+    echo >&2 " cargo install sqlx-cli --no-default-features --features postgres"
+    echo >&2 "to install it."
+    exit 1
+fi
+
 DB_USER=${POSTGRES_USER:=admin}
-# 커스텀 비밀번호 설정
 DB_PASSWORD="${POSTGRES_PASSWORD:=cyan6077}"
-# 커스텀 데이터베이스 이름 설정
-DB_NAME=${POSTGRES_DB:=rust_news}
-# 커스텀 포트 설정
+DB_NAME="${POSTGRES_DB:=rust_news}"
 DB_PORT="${POSTGRES_PORT:=5433}"
 
-# 도커로 postgres 구동
+
+# Allow to skip Docker if a dockerized Postgres database is already running
+if [[ -z "${SKIP_DOCKER}" ]]
+then
 docker run \
-  -e POSTGRES_USER=${DB_USER} \
-  -e POSTGRES_PASSWORD=${DB_PASSWORD} \
-  -e POSTGRES_DB=${DB_NAME} \
-  -p ${DB_PORT}:5433 \
-  -d postgres \
-  postgres -N 1000
-  # ^ 테스트 목적으로 커넥션 최대치로 설정
+-e POSTGRES_USER=${DB_USER} \
+-e POSTGRES_PASSWORD=${DB_PASSWORD} \
+-e POSTGRES_DB=${DB_NAME} \
+-p "${DB_PORT}":5432 \
+-d postgres \
+postgres -N 1000
+fi
+
+
+# Keep pinging Postgres until it's ready to accept commands
+export PGPASSWORD="${DB_PASSWORD}"
+until psql -h "localhost" -U "${DB_USER}" -p "${DB_PORT}" -d "postgres" -c '\q'; do
+    >&2 echo "Postgres is still unavailable - sleeping"
+    sleep 1
+done
+
+>&2 echo "Postgres is up and running on port ${DB_PORT}!"
+
+export DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}
+sqlx database create
+sqlx migrate run
+
+sqlx migrate add create_subscriptions_table
+
+>&2 echo "Postgres has been migrated, ready to go!"

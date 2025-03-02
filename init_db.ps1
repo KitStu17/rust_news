@@ -55,7 +55,7 @@ $env:PGPASSWORD = $env:DB_PASSWORD
 # Postgres가 명령어를 받아들일 준비가 될 때까지 대기
 do {
     try {
-        psql -h localhost -U $env:DB_USER -p $env:DB_PORT -d postgres
+        psql -h localhost -U $env:DB_USER -p $env:DB_PORT -d postgres -c "\q"
         $POSTGRES_READY = $true
     } catch {
         Write-Host "Postgres is still unavailable - sleeping"
@@ -67,8 +67,8 @@ do {
 Write-Host "Postgres is up and running on port $env:DB_PORT! - running migrations now!"
 
 # 데이터베이스 URL 설정
-# $env:DATABASE_URL = "postgres://'$env:DB_USER':'$env:DB_PASSWORD'@localhost:$env:DB_PORT/$env:DB_NAME"
-# Write-Host "DATABASE_URL: $env:DATABASE_URL"
+set DATABASE_URL="postgres://$env:DB_USER:$env:DB_PASSWORD@localhost:$env:DB_PORT/$env:DB_NAME"
+Write-Host "DATABASE_URL: $env:DATABASE_URL"
 
 # DB 마이그레이션 생성
 # slqx migration add create_subscriptions_table

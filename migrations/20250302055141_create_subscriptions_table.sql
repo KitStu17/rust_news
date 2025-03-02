@@ -1,4 +1,5 @@
 -- Add migration script here
+-- Add migration script here
 CREATE TABLE subscriptions (
     id uuid not null,
     primary key (id),
