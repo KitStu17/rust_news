@@ -19,12 +19,14 @@ DB_USER=${POSTGRES_USER:=admin}
 DB_PASSWORD="${POSTGRES_PASSWORD:=cyan6077}"
 DB_NAME="${POSTGRES_DB:=rust_news}"
 DB_PORT="${POSTGRES_PORT:=5433}"
+CONTAINER_NAME="${rust-postgres}"
 
 
 # Allow to skip Docker if a dockerized Postgres database is already running
 if [[ -z "${SKIP_DOCKER}" ]]
 then
 docker run \
+--name ${CONTAINER_NAME} \
 -e POSTGRES_USER=${DB_USER} \
 -e POSTGRES_PASSWORD=${DB_PASSWORD} \
 -e POSTGRES_DB=${DB_NAME} \
@@ -45,7 +47,7 @@ done
 
 export DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}
 sqlx database create
-sqlx migrate run
+# sqlx migrate run
 
 sqlx migrate add create_subscriptions_table
 

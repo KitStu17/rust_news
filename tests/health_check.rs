@@ -1,7 +1,8 @@
 use std::net::TcpListener;
-use sqlx::{PgPool};
+use sqlx::{Connection, PgConnection, PgPool, Executor};
 use rust_news::startup::run;
-use rust_news::configuration::get_configuration;
+use rust_news::configuration::{get_configuration, DatabaseSettings};
+use uuid::Uuid;
 
 pub struct TestApp {
     pub address: String,
@@ -96,16 +97,36 @@ async fn spawn_app()-> TestApp{
         .expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
+
     let configuration = get_configuration().expect("Failed to get configuration");
+    // 고유한 이름의 새로운 논리 DB 생성
+    // let mut configuration = get_configuration().expect("Failed to get configuration");
+    // configuration.database.database_name = Uuid::new_v4().to_string();
+
+    // let connection_pool = configure_database(&configuration.database).await;
+    
     let connection_pool = PgPool::connect(
         &configuration.database.connection_string()
     )
     .await
     .expect("Failed to connect to database");
-    let server = rust_news::startup::run(listener, connection_pool.clone()).expect("Failed to spawn app.");
+
+    let server = run(listener, connection_pool.clone()).expect("Failed to spawn app.");
     let _ = tokio::spawn(server);
     TestApp {
         address,
         db_pool: connection_pool,
     }
+}
+
+pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
+    // DB 생성
+    let mut connection = PgConnection::connect(&config.connection_string_without_db()).await.expect("Failed to connect to database");
+    connection.execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str()).await.expect("Failed to create database");
+
+    let connection_pool = PgPool::connect(&config.connection_string()).await.expect("Failed to connect to database");
+
+    sqlx::migrate!("./migrations").run(&connection_pool).await.expect("Failed to migrate the database");
+
+    connection_pool
 }
