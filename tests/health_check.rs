@@ -98,18 +98,18 @@ async fn spawn_app()-> TestApp{
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
 
-    let configuration = get_configuration().expect("Failed to get configuration");
+    // let configuration = get_configuration().expect("Failed to get configuration");
     // 고유한 이름의 새로운 논리 DB 생성
     // let mut configuration = get_configuration().expect("Failed to get configuration");
     // configuration.database.database_name = Uuid::new_v4().to_string();
 
-    // let connection_pool = configure_database(&configuration.database).await;
+    let connection_pool = configure_database().await;
     
-    let connection_pool = PgPool::connect(
-        &configuration.database.connection_string()
-    )
-    .await
-    .expect("Failed to connect to database");
+    // let connection_pool = PgPool::connect(
+    //     &configuration.database.connection_string()
+    // )
+    // .await
+    // .expect("Failed to connect to database");
 
     let server = run(listener, connection_pool.clone()).expect("Failed to spawn app.");
     let _ = tokio::spawn(server);
@@ -119,12 +119,20 @@ async fn spawn_app()-> TestApp{
     }
 }
 
-pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
+pub async fn configure_database() -> PgPool {
+    let mut configuration = get_configuration().expect("Failed to get configuration");
     // DB 생성
-    let mut connection = PgConnection::connect(&config.connection_string_without_db()).await.expect("Failed to connect to database");
-    connection.execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str()).await.expect("Failed to create database");
+    println!("{}\n",&configuration.database.connection_string_without_db());
+    let mut connection = PgConnection::connect(&configuration.database.connection_string()).await.expect("Failed to connect to database");
+    configuration.database.database_name = Uuid::new_v4().to_string();
 
-    let connection_pool = PgPool::connect(&config.connection_string()).await.expect("Failed to connect to database");
+    // 데이터베이스가 존재하는지 확인하고, 존재하지 않으면 생성
+    let database_exists = connection.fetch_one(format!("SELECT 1 FROM pg_database WHERE datname = '{}'", configuration.database.database_name).as_str()).await.is_ok();
+    if !database_exists {
+        connection.execute(format!(r#"CREATE DATABASE "{}";"#, configuration.database.database_name).as_str()).await.expect("Failed to create database");
+    }
+
+    let connection_pool = PgPool::connect(&configuration.database.connection_string()).await.expect("Failed to connect to database");
 
     sqlx::migrate!("./migrations").run(&connection_pool).await.expect("Failed to migrate the database");
 
