@@ -1,7 +1,9 @@
 use crate::routes::{health_check, subscribe, greet};
 
-use actix_web::{web, App, HttpServer};
 use actix_web::dev::Server;
+use actix_web::web::Data;
+use actix_web::{web, App, HttpServer};
+use actix_web::middleware::Logger;
 use sqlx::PgPool;
 use std::net::TcpListener;
 
@@ -11,10 +13,12 @@ pub fn run(listener: TcpListener,
         db_pool: PgPool
         ) -> Result<Server, std::io::Error> {
 
-    let pg_pool = web::Data::new(db_pool);
+    let pg_pool = Data::new(db_pool);
 
     let server = HttpServer::new(move || {
         App::new()
+            // App 에 대해 wrap 메서드로 미들웨어 추가 
+            .wrap(Logger::default())
             // route() -> Route 구조체 인스턴스
             // web::get() = Route::new().guard(guard::GET()) get요청일 때만 처리
             .route("/", web::get().to(greet))
